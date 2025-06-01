@@ -1,6 +1,6 @@
 pitch_analysis_task:
   description: >
-    Analyze the pitch deck document carefully. Extract key information about:
+    Analyze the pitch deck document at {file_path}. Extract key information about:
     1. Business model and value proposition
     2. Target market and market size
     3. Revenue model and financials

@@ -6,6 +6,7 @@ from pptx import Presentation
 import requests
 from bs4 import BeautifulSoup
 import json
+import os
 
 class ParseDocumentInput(BaseModel):
     """Input schema for document parsing tool."""
@@ -23,12 +24,29 @@ class DocumentParserTool(BaseTool):
     args_schema: Type[BaseModel] = ParseDocumentInput
 
     def _run(self, file_path: str) -> str:
-        if file_path.lower().endswith('.pdf'):
-            return self._parse_pdf(file_path)
-        elif file_path.lower().endswith(('.ppt', '.pptx')):
-            return self._parse_ppt(file_path)
+        print(f"\nDocument Parser received file_path: {file_path}")
+        
+        # Convert to absolute path if not already
+        abs_file_path = os.path.abspath(file_path)
+        print(f"Absolute path: {abs_file_path}")
+        
+        # Verify file exists
+        exists = os.path.exists(abs_file_path)
+        print(f"File exists: {exists}")
+        if not exists:
+            raise ValueError(f"File not found: {abs_file_path}")
+        
+        # Check file extension
+        is_pdf = abs_file_path.lower().endswith('.pdf')
+        is_ppt = abs_file_path.lower().endswith(('.ppt', '.pptx'))
+        print(f"Is PDF: {is_pdf}, Is PPT: {is_ppt}")
+        
+        if is_pdf:
+            return self._parse_pdf(abs_file_path)
+        elif is_ppt:
+            return self._parse_ppt(abs_file_path)
         else:
-            raise ValueError("Unsupported file format. Only PDF and PPT/PPTX are supported.")
+            raise ValueError(f"Unsupported file format for {abs_file_path}. Only PDF and PPT/PPTX are supported.")
 
     def _parse_pdf(self, file_path: str) -> str:
         reader = PdfReader(file_path)

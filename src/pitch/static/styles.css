@@ -1,0 +1,10 @@
+/* Custom styles */
+#file-upload {
+    opacity: 0;
+    position: absolute;
+    z-index: -1;
+}
+
+.progress-transition {
+    transition: width 0.3s ease-in-out;
+}

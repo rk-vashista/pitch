@@ -22,13 +22,10 @@ dependencies = [
 [project.scripts]
 pitch = "pitch.main:run"
 run_crew = "pitch.main:run"
-serve = "uvicorn:run"
+serve = "pitch.main:serve"
 train = "pitch.main:train"
 replay = "pitch.main:replay"
 test = "pitch.main:test"
-
-[project.entry-points."uvicorn.run"]
-pitch = "pitch.api:app"
 
 [build-system]
 requires = ["hatchling"]

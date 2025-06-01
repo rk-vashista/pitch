@@ -60,6 +60,7 @@ class Pitch():
     def pitch_analysis_task(self) -> Task:
         return Task(
             config=self.tasks_config['pitch_analysis_task'], # type: ignore[index]
+            context_format=True  # Enable context formatting for variables
         )
 
     @task

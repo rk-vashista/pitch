@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 import warnings
-
+import uvicorn
 from datetime import datetime
 
 from pitch.crew import Pitch
@@ -70,3 +70,9 @@ def test():
 
     except Exception as e:
         raise Exception(f"An error occurred while testing the crew: {e}")
+
+def serve():
+    """
+    Start the FastAPI server for the pitch deck analyzer.
+    """
+    uvicorn.run("pitch.api:app", host="0.0.0.0", port=8000, reload=True)
