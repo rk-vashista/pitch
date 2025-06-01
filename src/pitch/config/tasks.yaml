@@ -1,0 +1,37 @@
+pitch_analysis_task:
+  description: >
+    Analyze the pitch deck document carefully. Extract key information about:
+    1. Business model and value proposition
+    2. Target market and market size
+    3. Revenue model and financials
+    4. Team background and expertise
+    5. Current traction and milestones
+    6. Funding ask and use of funds
+  expected_output: >
+    A structured analysis of the pitch deck with key findings in each area
+  agent: pitch_analyzer
+
+industry_research_task:
+  description: >
+    Research the industry and market context for {startup_name}.
+    Focus on:
+    1. Market size and growth projections
+    2. Key competitors and their market share
+    3. Industry trends and challenges
+    4. Regulatory environment
+    5. Market opportunities and threats
+  expected_output: >
+    A comprehensive industry and market analysis report
+  agent: industry_researcher
+
+due_diligence_task:
+  description: >
+    Review the pitch analysis and industry research to:
+    1. Validate claims made in the pitch deck
+    2. Identify potential risks and red flags
+    3. Evaluate competitive advantages
+    4. Assess market opportunity and timing
+    5. Provide investment considerations
+  expected_output: >
+    A detailed due diligence report with findings and recommendations
+  agent: due_diligence_analyst
