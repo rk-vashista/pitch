@@ -4,7 +4,8 @@ from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List, Callable, Any
 from langchain_openai import ChatOpenAI
 import asyncio
-from .tools.document_tools import DocumentParserTool, WebResearchTool
+from .tools.document_tools import DocumentParserTool
+from .tools.serper_tool import WebResearchTool
 from .status_manager import status_manager
 
 @CrewBase
