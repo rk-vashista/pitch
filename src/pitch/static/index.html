@@ -55,11 +55,22 @@
                         </div>
                     </div>
                     <p id="status-message" class="text-sm text-gray-600"></p>
+                    
+                    <!-- Agent Activities Log -->
+                    <div id="agent-log" class="mt-4 p-4 bg-gray-50 rounded-md max-h-96 overflow-y-auto">
+                        <h4 class="text-md font-medium text-gray-900 mb-2">Analysis Progress</h4>
+                        <div id="log-entries" class="space-y-2"></div>
+                    </div>
                 </div>
             </div>
 
             <div id="result" class="mt-6 hidden">
-                <h3 class="text-lg font-medium text-gray-900">Analysis Results</h3>
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-900">Analysis Results</h3>
+                    <button id="download-report" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                        Download Report
+                    </button>
+                </div>
                 <div class="mt-2 p-4 bg-gray-50 rounded-md">
                     <pre id="result-content" class="text-sm text-gray-600 whitespace-pre-wrap"></pre>
                 </div>

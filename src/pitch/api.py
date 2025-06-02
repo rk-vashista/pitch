@@ -8,6 +8,7 @@ import os
 from typing import Dict
 import aiofiles
 import asyncio
+from datetime import datetime
 
 from .crew import Pitch
 from .status_manager import status_manager
@@ -47,7 +48,8 @@ async def analyze_pitch_deck(job_id: str, file_path: str, startup_name: str):
         await status_manager.broadcast_status(job_id, {
             "status": "started",
             "type": "task_started",
-            "message": "Starting pitch deck analysis"
+            "message": "Starting pitch deck analysis",
+            "timestamp": datetime.now().isoformat()
         })
 
         # Verify the file exists
@@ -74,12 +76,15 @@ async def analyze_pitch_deck(job_id: str, file_path: str, startup_name: str):
         try:
             result = pitch_crew.crew().kickoff(inputs=inputs)
             
+            # Convert CrewOutput to string if needed
+            result_text = str(result) if result else ""
+            
             # Send completion status
             await status_manager.broadcast_status(job_id, {
                 "status": "completed",
                 "type": "completed",
                 "message": "Analysis completed successfully",
-                "result": result
+                "result": result_text
             })
         except Exception as crew_error:
             await status_manager.broadcast_status(job_id, {

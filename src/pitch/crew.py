@@ -4,6 +4,7 @@ from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List, Callable, Any
 from langchain_openai import ChatOpenAI
 import asyncio
+from datetime import datetime
 from .tools.document_tools import DocumentParserTool
 from .tools.serper_tool import WebResearchTool
 from .status_manager import status_manager
@@ -82,27 +83,40 @@ class Pitch():
         """Creates the Pitch crew for analyzing pitch decks"""
         async def status_callback(event_type: str, event_data: dict):
             if 'job_id' in event_data:
-                await status_manager.broadcast_status(
-                    event_data['job_id'],
-                    {
-                        "status": "in_progress",
-                        "type": event_type,
-                        "message": event_data.get('message', 'Processing...'),
-                        "progress": event_data.get('progress')
-                    }
-                )
+                # Convert any non-serializable output to string
+                output = event_data.get('output', '')
+                if output and not isinstance(output, (str, int, float, bool, list, dict)):
+                    output = str(output)
 
-        # Create callback functions for task events
+                status_data = {
+                    "status": "in_progress",
+                    "type": event_type,
+                    "message": str(event_data.get('message', 'Processing...')),
+                    "progress": event_data.get('progress'),
+                    "timestamp": event_data.get('timestamp', ''),
+                    "agent": str(event_data.get('agent', '')),
+                    "task": str(event_data.get('task', '')),
+                    "output": output
+                }
+                await status_manager.broadcast_status(event_data['job_id'], status_data)
+
         def task_started(task: Task) -> None:
             asyncio.create_task(status_callback('task_started', {
                 'job_id': task.context.get('job_id'),
-                'message': f"Starting task: {task.description[:100]}..."
+                'message': f"Starting task: {task.description[:100]}...",
+                'agent': task.agent.name,
+                'task': task.description,
+                'timestamp': datetime.now().isoformat()
             }))
 
         def task_completed(task: Task) -> None:
             asyncio.create_task(status_callback('task_completed', {
                 'job_id': task.context.get('job_id'),
-                'message': f"Completed task: {task.description[:100]}..."
+                'message': f"Completed task: {task.description[:100]}...",
+                'agent': task.agent.name,
+                'task': task.description,
+                'output': task.output,
+                'timestamp': datetime.now().isoformat()
             }))
 
         return Crew(

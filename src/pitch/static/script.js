@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressBar = document.getElementById('progress-bar');
     const resultDiv = document.getElementById('result');
     const resultContent = document.getElementById('result-content');
+    const downloadButton = document.getElementById('download-report');
     let socket;
 
     form.addEventListener('submit', async (e) => {
@@ -37,9 +38,31 @@ document.addEventListener('DOMContentLoaded', () => {
             
             socket.onmessage = (event) => {
                 const status = JSON.parse(event.data);
+                const logEntries = document.getElementById('log-entries');
                 
                 // Update status message
                 statusMessage.textContent = status.message;
+
+                // Add log entry
+                if (status.message) {
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'p-2 border-l-4 border-blue-500 bg-blue-50';
+                    
+                    let logContent = `<p class="text-sm text-gray-800">${status.message}</p>`;
+                    if (status.agent) {
+                        logContent += `<p class="text-xs text-gray-600">Agent: ${status.agent}</p>`;
+                    }
+                    if (status.timestamp) {
+                        logContent += `<p class="text-xs text-gray-500">${new Date(status.timestamp).toLocaleTimeString()}</p>`;
+                    }
+                    if (status.output) {
+                        logContent += `<pre class="mt-2 text-xs bg-gray-100 p-2 rounded">${status.output}</pre>`;
+                    }
+                    
+                    logEntry.innerHTML = logContent;
+                    logEntries.appendChild(logEntry);
+                    logEntries.scrollTop = logEntries.scrollHeight;
+                }
 
                 // Update progress bar for different event types
                 switch (status.type) {
