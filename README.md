@@ -1,54 +1,97 @@
-# Pitch Crew
+# Pitch Deck Analyzer
 
-Welcome to the Pitch Crew project, powered by [crewAI](https://crewai.com). This template is designed to help you set up a multi-agent AI system with ease, leveraging the powerful and flexible framework provided by crewAI. Our goal is to enable your agents to collaborate effectively on complex tasks, maximizing their collective intelligence and capabilities.
+A powerful web application built with FastAPI and crewAI for analyzing startup pitch decks using AI agents. This tool helps investors and analysts evaluate pitch decks by providing comprehensive analysis, industry research, and due diligence reports.
+
+## Features
+
+- **Modern Web Interface**
+  - Responsive design with Tailwind CSS
+  - Real-time progress tracking
+  - Drag-and-drop file upload
+  - Interactive progress visualization
+  - Toast notifications
+  - Beautiful animated UI elements
+
+- **Document Analysis**
+  - Support for PDF and PPT/PPTX files
+  - Automatic text extraction
+  - Smart content analysis
+
+- **Multi-Agent Analysis**
+  - Pitch Deck Analyst: Evaluates business model, financials, and team
+  - Industry Researcher: Analyzes market trends and competition
+  - Due Diligence Analyst: Validates claims and identifies risks
+
+- **Real-time Updates**
+  - WebSocket-based progress tracking
+  - Detailed task progress logging
+  - Elapsed time monitoring
+  - Status notifications
 
 ## Installation
 
-Ensure you have Python >=3.10 <3.13 installed on your system. This project uses [UV](https://docs.astral.sh/uv/) for dependency management and package handling, offering a seamless setup and execution experience.
+1. Ensure you have Python >=3.10 <3.13 installed.
 
-First, if you haven't already, install uv:
+2. Clone the repository and set up your virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
 
-```bash
-pip install uv
+3. Install dependencies:
+   ```bash
+   pip install uv
+   uv pip install -e .
+   ```
+
+4. Set up environment variables:
+   - Create a `.env` file in the project root
+   - Add your OpenAI API key:
+     ```
+     OPENAI_API_KEY=your_key_here
+     ```
+
+## Usage
+
+1. Start the server:
+   ```bash
+   uvicorn pitch.api:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+2. Open your browser and navigate to `http://localhost:8000`
+
+3. Enter your startup name and upload your pitch deck (PDF/PPT/PPTX)
+
+4. Monitor the analysis progress in real-time
+
+5. View and download the comprehensive analysis report
+
+## Project Structure
+
+```
+src/pitch/
+├── api.py          # FastAPI application and endpoints
+├── crew.py         # AI agents configuration and crew setup
+├── status_manager.py # WebSocket-based status updates
+├── config/         # YAML configurations for agents and tasks
+├── static/         # Web interface files (HTML, CSS, JS)
+└── tools/          # Analysis tools and utilities
 ```
 
-Next, navigate to your project directory and install the dependencies:
+## Configuration
 
-(Optional) Lock the dependencies and install them by using the CLI command:
-```bash
-crewai install
-```
-### Customizing
+- Modify `src/pitch/config/agents.yaml` to customize agent behaviors
+- Adjust `src/pitch/config/tasks.yaml` to define analysis tasks
+- Update `src/pitch/crew.py` to add custom tools or modify agent logic
+- Fine-tune the UI in `src/pitch/static/`
 
-**Add your `OPENAI_API_KEY` into the `.env` file**
+## Contributing
 
-- Modify `src/pitch/config/agents.yaml` to define your agents
-- Modify `src/pitch/config/tasks.yaml` to define your tasks
-- Modify `src/pitch/crew.py` to add your own logic, tools and specific args
-- Modify `src/pitch/main.py` to add custom inputs for your agents and tasks
-
-## Running the Project
-
-To kickstart your crew of AI agents and begin task execution, run this from the root folder of your project:
-
-```bash
-$ crewai run
-```
-
-This command initializes the pitch Crew, assembling the agents and assigning them tasks as defined in your configuration.
-
-This example, unmodified, will run the create a `report.md` file with the output of a research on LLMs in the root folder.
-
-## Understanding Your Crew
-
-The pitch Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Support
 
-For support, questions, or feedback regarding the Pitch Crew or crewAI.
-- Visit our [documentation](https://docs.crewai.com)
-- Reach out to us through our [GitHub repository](https://github.com/joaomdmoura/crewai)
-- [Join our Discord](https://discord.com/invite/X4JWnZnxPb)
-- [Chat with our docs](https://chatg.pt/DWjSBZn)
-
-Let's create wonders together with the power and simplicity of crewAI.
+For questions or feedback:
+- Check out [crewAI documentation](https://docs.crewai.com)
+- File issues in our [GitHub repository](https://github.com/joaomdmoura/crewai)
+- Join the [crewAI Discord](https://discord.com/invite/X4JWnZnxPb)
