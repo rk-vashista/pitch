@@ -93,5 +93,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 For questions or feedback:
 - Check out [crewAI documentation](https://docs.crewai.com)
-- File issues in our [GitHub repository](https://github.com/joaomdmoura/crewai)
-- Join the [crewAI Discord](https://discord.com/invite/X4JWnZnxPb)
