@@ -1,79 +1,121 @@
 pitch_analysis_task:
   description: >
-    Analyze the provided documents ({total_files} files) focusing on:
-    1. Clarity of presentation and messaging
-    2. Investor readiness of materials
-    3. Team strength and capabilities
-    4. Market timing and urgency
-    5. Execution capability
-    6. Overall fundability
+    Analyze the provided documents ({total_files} files) and create Section 1 (Executive Summary) and Section 2 (Detailed Scoring & Investor Commentary) following the exact format:
+    
+    1. Executive Summary with:
+    - Brief company description and key details
+    - Scoring (1-10) for: Clarity of Presentation, Investor Readiness, Team Strength & Capability, Market Timing & Urgency, Execution Capability, Overall Fundability
+    - Aggregate Score calculation and Sector Heat rating (🌤️ Warm/Watchlist, 🔥 Hot/Priority, ❄️ Cold/Pass)
+    - Key Strengths (3-4 bullet points)
+    - Critical Gaps (3-4 bullet points)
+    - Investment Verdict (🔍 Further Validation Needed, ✅ Recommend, ❌ Pass)
+
+    2. Detailed Scoring & Investor Commentary with individual analysis for:
+    - Problem Statement, Solution/Product, Market Opportunity, Competitive Landscape, Business Model, Traction, GTM Strategy, Team, Financials, Use of Funds, Unit Economics, Why Now?
+    - Each scored 1-10 with status indicators (🟢 Good, 🟡 Needs Improvement, 🔴 Critical Risk)
+    - Detailed investor insights for each category
 
     Documents to analyze: {file_paths}
   expected_output: >
-    A comprehensive pitch deck analysis following the required format
+    Executive Summary and Detailed Scoring sections formatted exactly as shown in required_format.md
   agent: pitch_analyzer
 
 market_research_task:
   description: >
-    Research the market for {startup_name} focusing on:
-    1. Market overview (segments, TAM/SAM/SOM)
-    2. Key market trends
-    3. Competitive landscape
-    4. Key players comparison
-    5. Valuation multiples
-    6. India-specific insights
-    7. Government policies
-    8. Market risks
-    9. Recent deal activity
+    Research the market for {startup_name} and create the Market Research Report section following the exact format:
+    
+    1. Executive Summary of market status and trends
+    2. Market Overview with TAM/SAM/SOM analysis specific to India
+    3. Key Market Trends (4-5 major trends with detailed explanations)
+    4. Key Players Comparison table with funding, revenue, positioning, and notes
+    5. Valuation Multiples table (if available)
+    6. India-Specific Insights covering cultural behaviors, regional variations, consumer expectations
+    7. Government Policies relevant to the sector
+    8. Market Risks (regulatory, economic, competitive, saturation)
+    9. Recent Deal Activity table with startup funding data
+    10. Strategic Implications with funding potential and positioning recommendations
+
+    Focus on Indian market dynamics, cultural factors, and regulatory environment.
   expected_output: >
-    A detailed market research report following the required format
+    Complete Market Research Report section formatted exactly as shown in required_format.md with all subsections and tables
   agent: market_researcher
 
 financial_analysis_task:
   description: >
-    Analyze financial aspects including:
-    1. Revenue model and unit economics
-    2. Current financials and metrics
-    3. Funding history and requirements
-    4. Valuation analysis
-    5. Exit potential
+    Analyze financial aspects and contribute to Detailed Scoring section for:
+    - Business Model (revenue streams, commission structure, sustainability)
+    - Traction (customer metrics, growth rates, ARR analysis)
+    - Financials (P&L analysis, projections, burn rate)
+    - Unit Economics (CAC, LTV, contribution margins, payback period)
+    - Use of Funds (allocation analysis and milestone assessment)
+    
+    Provide detailed scoring (1-10) and investor commentary for each category.
+    Include competitive benchmarking of financial metrics where possible.
   expected_output: >
-    A comprehensive financial analysis report
+    Financial analysis sections integrated into Detailed Scoring with proper formatting and investor insights
   agent: financial_analyst
 
 website_social_analysis_task:
   description: >
-    Analyze the company's digital presence:
-    1. Website design and content
-    2. Social media presence
-    3. Online reputation
-    4. Press coverage
-    5. Digital marketing efforts
+    Analyze the company's digital presence and create Section 9 (Website & Social Audit):
+    
+    - Website analysis: design, content quality, user experience, calls-to-action, trust elements
+    - Social Media analysis: LinkedIn, Twitter, Instagram presence, follower count, engagement
+    - Online Reputation: press coverage, media mentions, startup ecosystem presence
+    - Digital Marketing: SEO, content strategy, online visibility
+    
+    Format as detailed paragraphs covering website and social media separately with specific observations and recommendations.
   expected_output: >
-    A detailed digital presence analysis
+    Website & Social Audit section formatted exactly as shown in required_format.md
   agent: website_social_analyst
 
 investment_strategy_task:
   description: >
-    Evaluate the investment potential:
-    1. Investment thesis alignment
-    2. Risk assessment
-    3. Strategic recommendations
-    4. Exit path analysis
-    5. Fundraising probability
-    6. Actionable recommendations
+    Evaluate investment potential and create sections 5, 6, and 7 following the exact format:
+    
+    5. Investment Thesis Alignment with scoring for:
+    - High Growth Potential, Founder-Market Fit, Capital Efficiency, Exit Path Clarity, Relevance, Ecosystem Fit
+    - Use emojis and status indicators as shown in template
+    
+    6. Fundraising Probability (6 Months):
+    - Provide realistic assessment with probability indicator
+    
+    7. Actionable Recommendations:
+    - 6-8 specific, actionable bullet points for improving fundability
+    - Focus on metrics, differentiation, GTM, team, financials, storytelling
   expected_output: >
-    A strategic investment analysis with clear recommendations
+    Investment Thesis Alignment, Fundraising Probability, and Actionable Recommendations sections formatted exactly as template
   agent: investment_strategist
 
 due_diligence_task:
   description: >
-    Conduct thorough due diligence:
-    1. Validation of metrics and claims
-    2. Risk identification
-    3. Market positioning verification
-    4. Competitive analysis verification
-    5. Financial projections review
+    Conduct thorough due diligence and create sections 4 and 8:
+    
+    4. Risk Identification covering:
+    - Execution Risks (scaling, operations, technology, regulatory)
+    - Financial Risks (burn rate, fundraising, margins)
+    - Market Risks (competition, adoption, economic factors)
+    
+    8. Exit Path Analysis covering:
+    - M&A Prospects (potential acquirers, historical examples)
+    - IPO Outlook (timeline and feasibility)
+    - Exit Multiples (comparable valuations)
+    - Exit timeline and strategy recommendations
+    
+    Provide detailed analysis with specific examples and market comparisons.
   expected_output: >
-    A comprehensive due diligence report
+    Risk Identification and Exit Path Analysis sections formatted exactly as shown in required_format.md
   agent: due_diligence_analyst
+
+competitive_benchmarking_task:
+  description: >
+    Create Section 3 (Competitive Benchmarking) with detailed table including:
+    - Company names, funding raised, revenue/traction, valuation/status, differentiation/notes
+    - Include subject company in comparison
+    - Analyze competitive advantages and disadvantages
+    - Provide strategic positioning insights
+    
+    Focus on direct and indirect competitors with quantitative metrics where available.
+  expected_output: >
+    Competitive Benchmarking section with detailed comparison table and analysis formatted as template
+  agent: market_researcher
