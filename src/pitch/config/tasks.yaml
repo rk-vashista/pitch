@@ -1,12 +1,14 @@
 pitch_analysis_task:
   description: >
-    Analyze the pitch deck at {file_path} focusing on:
+    Analyze the provided documents ({total_files} files) focusing on:
     1. Clarity of presentation and messaging
     2. Investor readiness of materials
     3. Team strength and capabilities
     4. Market timing and urgency
     5. Execution capability
     6. Overall fundability
+
+    Documents to analyze: {file_paths}
   expected_output: >
     A comprehensive pitch deck analysis following the required format
   agent: pitch_analyzer

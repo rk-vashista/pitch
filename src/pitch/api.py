@@ -18,12 +18,18 @@ app = FastAPI(title="Pitch Deck Analyzer")
 # Mount static files first
 app.mount("/static", StaticFiles(directory="src/pitch/static"), name="static")
 
-# Add CORS middleware
+# Add CORS middleware with specific origins
+origins = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://0.0.0.0:8000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update this in production
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -36,33 +42,55 @@ async def home():
 async def analyze(
     background_tasks: BackgroundTasks,
     startup_name: str = Form(...),
-    file: UploadFile = File(...)
+    files: list[UploadFile] = File(...)
 ):
-    """Handle file upload and start analysis"""
+    """Handle file uploads and start analysis"""
     try:
         # Generate unique job ID
         job_id = str(uuid.uuid4())
         
-        # Save uploaded file
-        file_path = await save_upload_file(file)
-        
+        # Save uploaded files and collect paths
+        file_paths = []
+        try:
+            for file in files:
+                file_path = await save_upload_file(file)
+                if not os.path.exists(file_path):
+                    raise FileNotFoundError(f"Failed to save file {file.filename}")
+                file_paths.append(file_path)
+        except Exception as upload_error:
+            return JSONResponse({
+                "status": "error",
+                "message": f"Error uploading files: {str(upload_error)}"
+            }, status_code=400)
+
+        # Validate files
+        if not file_paths:
+            return JSONResponse({
+                "status": "error",
+                "message": "No files were uploaded"
+            }, status_code=400)
+
         # Start analysis in background
         background_tasks.add_task(
             analyze_pitch_deck,
             job_id=job_id,
-            file_path=file_path,
+            file_paths=file_paths,
             startup_name=startup_name
         )
         
+        # Return success response with WebSocket connection details
         return JSONResponse({
             "status": "started",
             "job_id": job_id,
+            "message": "Analysis started successfully",
             "websocket_url": f"/ws/{job_id}"
         })
     except Exception as e:
+        # Log the error and return error response
+        print(f"Error in /analyze endpoint: {str(e)}")
         return JSONResponse({
             "status": "error",
-            "message": str(e)
+            "message": f"Internal server error: {str(e)}"
         }, status_code=500)
 
 UPLOAD_DIR = "uploads"
@@ -78,72 +106,108 @@ async def save_upload_file(upload_file: UploadFile) -> str:
         await out_file.write(content)
     return file_path
 
-async def analyze_pitch_deck(job_id: str, file_path: str, startup_name: str):
-    """Background task to analyze the pitch deck"""
-    pitch_crew = Pitch()
-    
+async def analyze_pitch_deck(job_id: str, file_paths: list[str], startup_name: str):
+    """Background task to analyze the pitch deck and additional files"""
     try:
-        # Initialize
+        # Initialize status
         await status_manager.broadcast_status(job_id, {
             "status": "started",
             "type": "task_started",
-            "message": "Starting pitch deck analysis",
+            "message": f"Starting analysis of {len(file_paths)} document(s)",
             "timestamp": datetime.now().isoformat()
         })
 
-        # Verify the file exists
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"Upload file not found at {file_path}")
-            
-        # Run the crew with the inputs
-        inputs = {
-            'file_path': file_path,
-            'startup_name': startup_name,
-            'current_year': '2025',
-            'job_id': job_id
-        }
+        # Validate and organize files
+        valid_files = []
+        invalid_files = []
+        
+        for file_path in file_paths:
+            if not os.path.exists(file_path):
+                invalid_files.append(f"File not found: {os.path.basename(file_path)}")
+                continue
+                
+            ext = os.path.splitext(file_path.lower())[1]
+            if ext not in ['.pdf', '.ppt', '.pptx']:
+                invalid_files.append(f"Unsupported format for {os.path.basename(file_path)}")
+                continue
+                
+            valid_files.append(file_path)
+
+        if not valid_files:
+            raise ValueError("No valid files to analyze.\n" + "\n".join(invalid_files))
+
+        if invalid_files:
+            await status_manager.broadcast_status(job_id, {
+                "status": "warning",
+                "type": "validation_warning",
+                "message": "Some files were skipped:\n" + "\n".join(invalid_files),
+                "timestamp": datetime.now().isoformat()
+            })
+
+        # Initialize crew
+        pitch_crew = Pitch()
         
         print(f"\nStarting analysis with:")
-        print(f"- File path: {file_path}")
+        print(f"- Valid files ({len(valid_files)}):")
+        for file in valid_files:
+            print(f"  - {os.path.basename(file)}")
         print(f"- Startup name: {startup_name}")
-        print(f"- File exists: {os.path.exists(file_path)}")
-        print(f"- File type:", "PDF" if file_path.lower().endswith('.pdf') else "PPT" if file_path.lower().endswith(('.ppt', '.pptx')) else "Unknown")
-        print(f"- Directory contents of {os.path.dirname(file_path)}:")
-        print('\n'.join(f"  - {f}" for f in os.listdir(os.path.dirname(file_path))))
+        
+        # Prepare inputs for the crew
+        inputs = {
+            'file_paths': ", ".join(valid_files),  # Convert list to comma-separated string for template
+            'startup_name': startup_name,
+            'current_year': str(datetime.now().year),
+            'job_id': job_id,
+            'total_files': len(valid_files)
+        }
 
-        # Run tasks and send updates
         try:
+            # Run crew analysis
             result = pitch_crew.crew().kickoff(inputs=inputs)
             
-            # Convert CrewOutput to string if needed
-            result_text = str(result) if result else ""
+            # Handle result
+            result_text = str(result) if result else "Analysis completed but no results were generated."
             
             # Send completion status
             await status_manager.broadcast_status(job_id, {
                 "status": "completed",
                 "type": "completed",
                 "message": "Analysis completed successfully",
-                "result": result_text
+                "result": result_text,
+                "timestamp": datetime.now().isoformat()
             })
+
         except Exception as crew_error:
+            error_message = f"Error during crew analysis: {str(crew_error)}"
+            print(f"Crew error: {error_message}")
             await status_manager.broadcast_status(job_id, {
                 "status": "error",
                 "type": "error",
-                "message": f"Error during analysis: {str(crew_error)}"
+                "message": error_message,
+                "timestamp": datetime.now().isoformat()
             })
             raise crew_error
 
     except Exception as e:
+        error_message = f"Error in pitch deck analysis: {str(e)}"
+        print(f"Analysis error: {error_message}")
         await status_manager.broadcast_status(job_id, {
             "status": "error",
-            "message": f"Error during analysis: {str(e)}"
+            "type": "error",
+            "message": error_message,
+            "timestamp": datetime.now().isoformat()
         })
+        raise e
+
     finally:
-        # Cleanup uploaded file
+        # Clean up uploaded files
         try:
-            os.remove(file_path)
-        except:
-            pass
+            for file_path in file_paths:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+        except Exception as cleanup_error:
+            print(f"Error cleaning up file(s): {cleanup_error}")
 
 # Previous duplicate route handlers removed
 

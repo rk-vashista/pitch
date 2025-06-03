@@ -1,10 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('uploadForm');
     const submitBtn = document.getElementById('submit-btn');
-    if (!form) {
-        console.error('Upload form not found!');
-        return;
-    }
     const statusDiv = document.getElementById('status');
     const statusMessage = document.getElementById('status-message');
     const progressBar = document.getElementById('progress-bar');
@@ -15,106 +11,65 @@ document.addEventListener('DOMContentLoaded', () => {
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
     const elapsedTimeElement = document.getElementById('elapsed-time');
+    const fileInput = document.getElementById('file-upload');
+    const selectedFilesDiv = document.getElementById('selected-files');
+    const dropZone = document.querySelector('.drop-zone');
+    
     let socket;
     let startTime;
     let elapsedTimeInterval;
 
+    if (!form) {
+        console.error('Upload form not found!');
+        return;
+    }
+
+    // Handle file selection display
+    fileInput.addEventListener('change', () => {
+        selectedFilesDiv.innerHTML = '';
+        Array.from(fileInput.files).forEach(file => {
+            const fileDiv = document.createElement('div');
+            fileDiv.className = 'flex items-center justify-between bg-blue-50 p-2 rounded-md mt-2';
+            fileDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-file-alt text-blue-500 mr-2"></i>
+                    <span class="text-sm text-gray-700">${file.name}</span>
+                </div>
+                <span class="text-xs text-gray-500">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+            `;
+            selectedFilesDiv.appendChild(fileDiv);
+        });
+    });
+
     // Toast notification function
     function showToast(message, type = 'info') {
         toastMessage.textContent = message;
-        toast.className = `toast show ${type}`;
+        toast.className = `toast ${type === 'error' ? 'error' : 'info'} show`;
         setTimeout(() => {
-            toast.className = 'toast';
+            toast.className = toast.className.replace('show', '');
         }, 3000);
     }
 
-    // Update elapsed time
-    function updateElapsedTime() {
-        const now = new Date();
-        const elapsed = Math.floor((now - startTime) / 1000);
-        const minutes = Math.floor(elapsed / 60);
-        const seconds = elapsed % 60;
-        elapsedTimeElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-
-    // Start timer
-    function startTimer() {
-        startTime = new Date();
-        elapsedTimeInterval = setInterval(updateElapsedTime, 1000);
-    }
-
-    // Stop timer
-    function stopTimer() {
-        if (elapsedTimeInterval) {
-            clearInterval(elapsedTimeInterval);
-        }
-    }
-
-    let currentAnalysis = null;
-
-    async function startAnalysis(startupName, file) {
-        if (currentAnalysis) {
-            currentAnalysis.abort();
-        }
-
-        // Create AbortController for this analysis
-        currentAnalysis = new AbortController();
-        const signal = currentAnalysis.signal;
-
-        // Reset UI for new analysis
-        statusDiv.style.display = 'block';
-        resultDiv.style.display = 'none';
-        downloadButton.style.display = 'none';
-        progressBar.style.width = '0%';
-        progressPercentage.textContent = '0%';
-        statusMessage.textContent = 'Uploading file...';
-        document.getElementById('log-entries').innerHTML = '';
-        
-        // Start timer
-        startTimer();
-
-        // Create FormData
-        const formData = new FormData();
-        formData.append('startup_name', startupName);
-        formData.append('file', file);
-
-        try {
-            const response = await fetch('/analyze', {
-                method: 'POST',
-                body: formData,
-                signal
-            });
-
-            if (!response.ok) {
-                const error = await response.text();
-                throw new Error(error || 'Upload failed');
-            }
-
-            return await response.json();
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                console.log('Analysis aborted');
-                return null;
-            }
-            throw error;
-        }
-    }
-
+    // Form submission handler
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const startupName = form.elements['startup_name'].value.trim();
-        const file = form.elements['file'].files[0];
+        const files = form.elements['files'].files;
 
         if (!startupName) {
             showToast('Please enter your startup name', 'error');
             return;
         }
 
-        if (!file) {
-            showToast('Please select a file to analyze', 'error');
+        if (files.length === 0) {
+            showToast('Please select at least one file to analyze', 'error');
             return;
         }
+
+        // Disable form while processing
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
 
         // Reset UI
         statusDiv.classList.remove('hidden');
@@ -122,19 +77,21 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadButton.classList.add('hidden');
         progressBar.style.width = '0%';
         progressPercentage.textContent = '0%';
-        statusMessage.textContent = 'Uploading file...';
+        statusMessage.textContent = 'Uploading files...';
         document.getElementById('log-entries').innerHTML = '';
         
         // Start timer
         startTimer();
 
-        // Create FormData
+        // Create FormData with multiple files
         const formData = new FormData();
         formData.append('startup_name', startupName);
-        formData.append('file', file);
+        Array.from(files).forEach(file => {
+            formData.append('files', file);
+        });
 
         try {
-            // Upload file
+            // Upload files
             const response = await fetch('/analyze', {
                 method: 'POST',
                 body: formData
@@ -152,21 +109,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await response.json();
+            console.log('Analysis started:', data);
 
-            // Connect to WebSocket
+            // Connect to WebSocket for status updates
             if (socket) {
                 socket.close();
             }
             
             socket = new WebSocket(`ws://${window.location.host}${data.websocket_url}`);
-            startTimer();
             
             socket.onmessage = (event) => {
                 try {
                     const status = JSON.parse(event.data);
+                    console.log('Status update:', status);
+                    
                     const logEntries = document.getElementById('log-entries');
                     
-                    // Update status message and add log entry
                     if (status.message) {
                         statusMessage.textContent = status.message;
                         
@@ -214,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         logEntries.scrollTop = logEntries.scrollHeight;
                     }
                     
-                    // Update progress bar for different event types
+                    // Update progress bar
                     let progress = 0;
                     switch (status.type) {
                         case 'task_started':
@@ -227,7 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             progress = 100;
                             progressBar.style.width = '100%';
                             progressPercentage.textContent = '100%';
-                            // Show results
                             resultDiv.classList.remove('hidden');
                             resultContent.textContent = status.result;
                             showToast('Analysis completed successfully', 'success');
@@ -251,11 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error('Error processing message:', error);
                     showToast('Error processing status update', 'error');
                 }
-                
-                if (progress > 0) {
-                    progressBar.style.width = `${progress}%`;
-                    progressPercentage.textContent = `${progress}%`;
-                }
             };
 
             socket.onerror = (error) => {
@@ -268,59 +220,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Error:', error);
-            statusMessage.textContent = 'Error uploading file: ' + error.message;
+            statusMessage.textContent = 'Error: ' + error.message;
             statusMessage.classList.add('text-red-600');
-            showToast('Error uploading file', 'error');
+            showToast('Error uploading files', 'error');
             stopTimer();
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Start Analysis';
         }
     });
 
-    // WebSocket event handlers
-    ws.onopen = () => {
-        console.log('WebSocket connection established');
-    };
-
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.status) {
-            updateProgress(data.status);
-        }
-    };
-
-    ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        showError('WebSocket connection failed');
-    };
-
-    function updateProgress(status) {
-        // Update progress UI based on status message
-        const progressElement = document.getElementById('progress');
-        if (progressElement) {
-            progressElement.textContent = status;
-        }
+    // Timer functions
+    function updateElapsedTime() {
+        if (!startTime) return;
+        const elapsed = new Date() - startTime;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        elapsedTimeElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 
-    function showError(message) {
-        // Show error message to user
-        const errorElement = document.getElementById('error-message');
-        if (errorElement) {
-            errorElement.textContent = message;
-            errorElement.classList.remove('hidden');
+    function startTimer() {
+        startTime = new Date();
+        if (elapsedTimeInterval) clearInterval(elapsedTimeInterval);
+        elapsedTimeInterval = setInterval(updateElapsedTime, 1000);
+    }
+
+    function stopTimer() {
+        if (elapsedTimeInterval) {
+            clearInterval(elapsedTimeInterval);
+            elapsedTimeInterval = null;
         }
     }
 
     // File drag and drop handling
-    const dropZone = document.querySelector('.drop-zone');
-    const fileInput = document.getElementById('file-upload');
-
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropZone.addEventListener(eventName, preventDefaults, false);
     });
-
-    function preventDefaults (e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
 
     ['dragenter', 'dragover'].forEach(eventName => {
         dropZone.addEventListener(eventName, highlight, false);
@@ -329,6 +264,11 @@ document.addEventListener('DOMContentLoaded', () => {
     ['dragleave', 'drop'].forEach(eventName => {
         dropZone.addEventListener(eventName, unhighlight, false);
     });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
 
     function highlight(e) {
         dropZone.classList.add('active');
@@ -348,17 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const dt = e.dataTransfer;
         const files = dt.files;
         fileInput.files = files;
-        // Dispatch change event to update UI
         fileInput.dispatchEvent(new Event('change', { bubbles: true }));
     }
-
-    // Update UI when file is selected
-    fileInput.addEventListener('change', (e) => {
-        const fileName = e.target.files[0]?.name;
-        if (fileName) {
-            dropZone.querySelector('p').textContent = fileName;
-        } else {
-            dropZone.querySelector('p').textContent = 'or drag and drop your file here';
-        }
-    });
 });
