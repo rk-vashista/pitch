@@ -15,9 +15,10 @@ from .status_manager import status_manager
 
 app = FastAPI(title="Pitch Deck Analyzer")
 
-# Mount static files
+# Mount static files first
 app.mount("/static", StaticFiles(directory="src/pitch/static"), name="static")
 
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Update this in production
@@ -25,6 +26,44 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+async def home():
+    """Serve the home page"""
+    return FileResponse("src/pitch/static/index.html")
+
+@app.post("/analyze")
+async def analyze(
+    background_tasks: BackgroundTasks,
+    startup_name: str = Form(...),
+    file: UploadFile = File(...)
+):
+    """Handle file upload and start analysis"""
+    try:
+        # Generate unique job ID
+        job_id = str(uuid.uuid4())
+        
+        # Save uploaded file
+        file_path = await save_upload_file(file)
+        
+        # Start analysis in background
+        background_tasks.add_task(
+            analyze_pitch_deck,
+            job_id=job_id,
+            file_path=file_path,
+            startup_name=startup_name
+        )
+        
+        return JSONResponse({
+            "status": "started",
+            "job_id": job_id,
+            "websocket_url": f"/ws/{job_id}"
+        })
+    except Exception as e:
+        return JSONResponse({
+            "status": "error",
+            "message": str(e)
+        }, status_code=500)
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -54,14 +93,14 @@ async def analyze_pitch_deck(job_id: str, file_path: str, startup_name: str):
 
         # Verify the file exists
         if not os.path.exists(file_path):
-            raise ValueError(f"File not found: {file_path}")
+            raise FileNotFoundError(f"Upload file not found at {file_path}")
             
         # Run the crew with the inputs
         inputs = {
             'file_path': file_path,
             'startup_name': startup_name,
-            'current_year': '2025',  # Add current year as required by main.py
-            'job_id': job_id  # Pass job_id to allow tasks to update status
+            'current_year': '2025',
+            'job_id': job_id
         }
         
         print(f"\nStarting analysis with:")
@@ -106,54 +145,21 @@ async def analyze_pitch_deck(job_id: str, file_path: str, startup_name: str):
         except:
             pass
 
-@app.post("/analyze")
-async def create_analysis(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-    startup_name: str = Form(default="Unknown Startup")
-):
-    """
-    Upload a pitch deck (PDF/PPT) and start the analysis
-    """
-    if not file.filename.lower().endswith(('.pdf', '.ppt', '.pptx')):
-        return JSONResponse(
-            status_code=400,
-            content={"error": "Only PDF and PPT/PPTX files are supported"}
-        )
-
-    # Generate job ID
-    job_id = str(uuid.uuid4())
-
-    # Save the uploaded file
-    file_path = await save_upload_file(file)
-
-    # Start analysis in background
-    background_tasks.add_task(
-        analyze_pitch_deck,
-        job_id=job_id,
-        file_path=file_path,
-        startup_name=startup_name or "unknown"
-    )
-
-    return {
-        "job_id": job_id,
-        "message": "Analysis started",
-        "websocket_url": f"/ws/{job_id}"
-    }
+# Previous duplicate route handlers removed
 
 @app.websocket("/ws/{job_id}")
 async def websocket_endpoint(websocket: WebSocket, job_id: str):
-    """WebSocket endpoint for real-time status updates"""
-    await status_manager.connect(websocket, job_id)
+    """WebSocket endpoint for real-time updates"""
+    await websocket.accept()
+    await status_manager.connect(job_id, websocket)
     try:
         while True:
-            await websocket.receive_text()
-    except:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+    finally:
         status_manager.disconnect(websocket, job_id)
-
-@app.get("/")
-async def read_root():
-    """Serve the index.html file"""
-    return FileResponse("src/pitch/static/index.html")
 
 # Server will be started by uvicorn

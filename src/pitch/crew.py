@@ -7,6 +7,7 @@ import asyncio
 from datetime import datetime
 from .tools.document_tools import DocumentParserTool
 from .tools.serper_tool import WebResearchTool
+from .tools.knowledge_base import KnowledgeBaseTool
 from .status_manager import status_manager
 
 @CrewBase
@@ -23,28 +24,49 @@ class Pitch():
             temperature=0.7,
         )
 
-    # Learn more about YAML configuration files here:
-    # Agents: https://docs.crewai.com/concepts/agents#yaml-configuration-recommended
-    # Tasks: https://docs.crewai.com/concepts/tasks#yaml-configuration-recommended
-    
-    # If you would like to add tools to your agents, you can learn more about it here:
-    # https://docs.crewai.com/concepts/agents#agent-tools
     @agent
     def pitch_analyzer(self) -> Agent:
         return Agent(
             config=self.agents_config['pitch_analyzer'],
             llm=self.llm,
             verbose=True,
-            tools=[DocumentParserTool()]
+            tools=[DocumentParserTool(), KnowledgeBaseTool()]
+        )
+
+    @agent 
+    def market_researcher(self) -> Agent:
+        return Agent(
+            config=self.agents_config['market_researcher'],
+            llm=self.llm,
+            verbose=True,
+            tools=[WebResearchTool(), KnowledgeBaseTool()]
         )
 
     @agent
-    def industry_researcher(self) -> Agent:
+    def financial_analyst(self) -> Agent:
         return Agent(
-            config=self.agents_config['industry_researcher'],
+            config=self.agents_config['financial_analyst'],
             llm=self.llm,
             verbose=True,
-            tools=[WebResearchTool()]
+            tools=[KnowledgeBaseTool()]
+        )
+
+    @agent
+    def website_social_analyst(self) -> Agent:
+        return Agent(
+            config=self.agents_config['website_social_analyst'],
+            llm=self.llm,
+            verbose=True,
+            tools=[WebResearchTool(), KnowledgeBaseTool()]
+        )
+
+    @agent
+    def investment_strategist(self) -> Agent:
+        return Agent(
+            config=self.agents_config['investment_strategist'],
+            llm=self.llm,
+            verbose=True,
+            tools=[KnowledgeBaseTool()]
         )
 
     @agent
@@ -52,29 +74,50 @@ class Pitch():
         return Agent(
             config=self.agents_config['due_diligence_analyst'],
             llm=self.llm,
-            verbose=True
+            verbose=True,
+            tools=[KnowledgeBaseTool(), WebResearchTool()]
         )
 
-    # To learn more about structured task outputs,
-    # task dependencies, and task callbacks, check out the documentation:
-    # https://docs.crewai.com/concepts/tasks#overview-of-a-task
     @task
     def pitch_analysis_task(self) -> Task:
         return Task(
-            config=self.tasks_config['pitch_analysis_task'], # type: ignore[index]
-            context_format=True  # Enable context formatting for variables
+            config=self.tasks_config['pitch_analysis_task'],
+            context_format=True
         )
 
     @task
-    def industry_research_task(self) -> Task:
+    def market_research_task(self) -> Task:
         return Task(
-            config=self.tasks_config['industry_research_task'], # type: ignore[index]
+            config=self.tasks_config['market_research_task'],
+            context_format=True
+        )
+
+    @task
+    def financial_analysis_task(self) -> Task:
+        return Task(
+            config=self.tasks_config['financial_analysis_task'],
+            context_format=True
+        )
+
+    @task
+    def website_social_analysis_task(self) -> Task:
+        return Task(
+            config=self.tasks_config['website_social_analysis_task'],
+            context_format=True
+        )
+
+    @task
+    def investment_strategy_task(self) -> Task:
+        return Task(
+            config=self.tasks_config['investment_strategy_task'],
+            context_format=True
         )
 
     @task
     def due_diligence_task(self) -> Task:
         return Task(
-            config=self.tasks_config['due_diligence_task'], # type: ignore[index]
+            config=self.tasks_config['due_diligence_task'],
+            context_format=True,
             output_file='report.md'
         )
 
@@ -120,8 +163,22 @@ class Pitch():
             }))
 
         return Crew(
-            agents=self.agents,
-            tasks=self.tasks,
+            agents=[
+                self.pitch_analyzer(),
+                self.market_researcher(),
+                self.financial_analyst(),
+                self.website_social_analyst(),
+                self.investment_strategist(),
+                self.due_diligence_analyst()
+            ],
+            tasks=[
+                self.pitch_analysis_task(),
+                self.market_research_task(),
+                self.financial_analysis_task(),
+                self.website_social_analysis_task(),
+                self.investment_strategy_task(),
+                self.due_diligence_task()
+            ],
             process=Process.sequential,
             verbose=True,
             task_started_callback=task_started,

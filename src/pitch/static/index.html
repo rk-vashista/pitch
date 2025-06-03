@@ -22,51 +22,24 @@
 
         <div class="max-w-2xl mx-auto">
             <div class="bg-white rounded-xl shadow-lg p-8 mb-8 transform transition-all hover:shadow-xl">
-                <form id="uploadForm" class="space-y-6">
+                <form id="uploadForm" class="space-y-6" enctype="multipart/form-data">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700">Startup Name</label>
-                        <input type="text" name="startup_name" 
-                            class="mt-2 block w-full px-4 py-3 rounded-lg border-2 border-gray-200 
-                                focus:border-blue-500 focus:ring-blue-500 transition-colors" 
-                            placeholder="Enter your startup name">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Pitch Deck</label>
-                        <div class="drop-zone mt-1 flex flex-col items-center px-6 pt-8 pb-8 border-2 border-gray-200 border-dashed rounded-lg hover:border-blue-400 transition-colors">
-                            <div class="space-y-3 text-center">
-                                <i class="fas fa-cloud-upload-alt text-4xl text-blue-500"></i>
-                                <div class="flex flex-col space-y-2 text-gray-600">
-                                    <label for="file-upload" class="relative cursor-pointer font-medium text-blue-600 hover:text-blue-500">
-                                        <span class="inline-flex items-center">
-                                            <i class="fas fa-file-upload mr-2"></i>
-                                            Upload your pitch deck
-                                        </span>
-                                        <input id="file-upload" name="file" type="file" class="sr-only" accept=".pdf,.ppt,.pptx">
-                                    </label>
-                                    <p class="text-sm">or drag and drop your file here</p>
-                                </div>
-                                <div class="flex items-center justify-center space-x-2 text-xs text-gray-500">
-                                    <span><i class="far fa-file-pdf text-red-400 mr-1"></i>PDF</span>
-                                    <span><i class="far fa-file-powerpoint text-orange-400 mr-1"></i>PPT/PPTX</span>
-                                    <span><i class="fas fa-weight-hanging text-gray-400 mr-1"></i>Max 10MB</span>
-                                </div>
-                            </div>
-                        </div>
+                        <label for="startup_name" class="block text-sm font-semibold text-gray-700">Startup Name</label>
+                        <input type="text" id="startup_name" name="startup_name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your startup name" required>
                     </div>
 
-                    <div>
-                        <button type="submit" 
-                            class="w-full flex items-center justify-center py-3 px-6 
-                                border border-transparent rounded-lg text-base font-medium text-white 
-                                bg-gradient-to-r from-blue-600 to-indigo-600 
-                                hover:from-blue-700 hover:to-indigo-700 
-                                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-                                transform transition-all hover:scale-[1.02]">
-                            <i class="fas fa-rocket mr-2"></i>
-                            Start Analysis
-                        </button>
+                    <div class="drop-zone flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                        <input type="file" id="file-upload" name="file" accept=".pdf,.ppt,.pptx,.doc,.docx" required>
+                        <label for="file-upload" class="cursor-pointer">
+                            <span class="text-blue-600 hover:text-blue-700">Choose a file</span>
+                            <p class="text-gray-500 text-sm mt-1">or drag and drop your file here</p>
+                        </label>
                     </div>
+
+                    <button type="submit" id="submit-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Start Analysis
+                    </button>
                 </form>
 
             <div id="status" class="mt-8 hidden">

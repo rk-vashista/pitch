@@ -1,37 +1,77 @@
 pitch_analysis_task:
   description: >
-    Analyze the pitch deck document at {file_path}. Extract key information about:
-    1. Business model and value proposition
-    2. Target market and market size
-    3. Revenue model and financials
-    4. Team background and expertise
-    5. Current traction and milestones
-    6. Funding ask and use of funds
+    Analyze the pitch deck at {file_path} focusing on:
+    1. Clarity of presentation and messaging
+    2. Investor readiness of materials
+    3. Team strength and capabilities
+    4. Market timing and urgency
+    5. Execution capability
+    6. Overall fundability
   expected_output: >
-    A structured analysis of the pitch deck with key findings in each area
+    A comprehensive pitch deck analysis following the required format
   agent: pitch_analyzer
 
-industry_research_task:
+market_research_task:
   description: >
-    Research the industry and market context for {startup_name}.
-    Focus on:
-    1. Market size and growth projections
-    2. Key competitors and their market share
-    3. Industry trends and challenges
-    4. Regulatory environment
-    5. Market opportunities and threats
+    Research the market for {startup_name} focusing on:
+    1. Market overview (segments, TAM/SAM/SOM)
+    2. Key market trends
+    3. Competitive landscape
+    4. Key players comparison
+    5. Valuation multiples
+    6. India-specific insights
+    7. Government policies
+    8. Market risks
+    9. Recent deal activity
   expected_output: >
-    A comprehensive industry and market analysis report
-  agent: industry_researcher
+    A detailed market research report following the required format
+  agent: market_researcher
+
+financial_analysis_task:
+  description: >
+    Analyze financial aspects including:
+    1. Revenue model and unit economics
+    2. Current financials and metrics
+    3. Funding history and requirements
+    4. Valuation analysis
+    5. Exit potential
+  expected_output: >
+    A comprehensive financial analysis report
+  agent: financial_analyst
+
+website_social_analysis_task:
+  description: >
+    Analyze the company's digital presence:
+    1. Website design and content
+    2. Social media presence
+    3. Online reputation
+    4. Press coverage
+    5. Digital marketing efforts
+  expected_output: >
+    A detailed digital presence analysis
+  agent: website_social_analyst
+
+investment_strategy_task:
+  description: >
+    Evaluate the investment potential:
+    1. Investment thesis alignment
+    2. Risk assessment
+    3. Strategic recommendations
+    4. Exit path analysis
+    5. Fundraising probability
+    6. Actionable recommendations
+  expected_output: >
+    A strategic investment analysis with clear recommendations
+  agent: investment_strategist
 
 due_diligence_task:
   description: >
-    Review the pitch analysis and industry research to:
-    1. Validate claims made in the pitch deck
-    2. Identify potential risks and red flags
-    3. Evaluate competitive advantages
-    4. Assess market opportunity and timing
-    5. Provide investment considerations
+    Conduct thorough due diligence:
+    1. Validation of metrics and claims
+    2. Risk identification
+    3. Market positioning verification
+    4. Competitive analysis verification
+    5. Financial projections review
   expected_output: >
-    A detailed due diligence report with findings and recommendations
+    A comprehensive due diligence report
   agent: due_diligence_analyst

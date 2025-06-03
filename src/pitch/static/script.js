@@ -1,5 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submit-btn');
+    if (!form) {
+        console.error('Upload form not found!');
+        return;
+    }
     const statusDiv = document.getElementById('status');
     const statusMessage = document.getElementById('status-message');
     const progressBar = document.getElementById('progress-bar');
@@ -45,10 +50,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    let currentAnalysis = null;
+
+    async function startAnalysis(startupName, file) {
+        if (currentAnalysis) {
+            currentAnalysis.abort();
+        }
+
+        // Create AbortController for this analysis
+        currentAnalysis = new AbortController();
+        const signal = currentAnalysis.signal;
+
+        // Reset UI for new analysis
+        statusDiv.style.display = 'block';
+        resultDiv.style.display = 'none';
+        downloadButton.style.display = 'none';
+        progressBar.style.width = '0%';
+        progressPercentage.textContent = '0%';
+        statusMessage.textContent = 'Uploading file...';
+        document.getElementById('log-entries').innerHTML = '';
+        
+        // Start timer
+        startTimer();
+
+        // Create FormData
+        const formData = new FormData();
+        formData.append('startup_name', startupName);
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/analyze', {
+                method: 'POST',
+                body: formData,
+                signal
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(error || 'Upload failed');
+            }
+
+            return await response.json();
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Analysis aborted');
+                return null;
+            }
+            throw error;
+        }
+    }
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Validate form
         const startupName = form.elements['startup_name'].value.trim();
         const file = form.elements['file'].files[0];
 
@@ -65,16 +119,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset UI
         statusDiv.classList.remove('hidden');
         resultDiv.classList.add('hidden');
+        downloadButton.classList.add('hidden');
         progressBar.style.width = '0%';
         progressPercentage.textContent = '0%';
-        statusMessage.textContent = 'Starting upload...';
+        statusMessage.textContent = 'Uploading file...';
         document.getElementById('log-entries').innerHTML = '';
         
         // Start timer
         startTimer();
 
         // Create FormData
-        const formData = new FormData(form);
+        const formData = new FormData();
+        formData.append('startup_name', startupName);
+        formData.append('file', file);
 
         try {
             // Upload file
@@ -84,94 +141,115 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                throw new Error('Upload failed');
+                let errorMessage;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || 'Upload failed';
+                } catch (e) {
+                    errorMessage = await response.text() || 'Upload failed';
+                }
+                throw new Error(errorMessage);
             }
 
             const data = await response.json();
-            
+
             // Connect to WebSocket
+            if (socket) {
+                socket.close();
+            }
+            
             socket = new WebSocket(`ws://${window.location.host}${data.websocket_url}`);
+            startTimer();
             
             socket.onmessage = (event) => {
-                const status = JSON.parse(event.data);
-                const logEntries = document.getElementById('log-entries');
-                
-                // Update status message
-                statusMessage.textContent = status.message;
+                try {
+                    const status = JSON.parse(event.data);
+                    const logEntries = document.getElementById('log-entries');
+                    
+                    // Update status message and add log entry
+                    if (status.message) {
+                        statusMessage.textContent = status.message;
+                        
+                        const logEntry = document.createElement('div');
+                        logEntry.className = 'log-entry p-4 bg-white rounded-lg shadow-sm border border-gray-100';
+                        
+                        let logContent = `
+                            <div class="flex items-start space-x-3">
+                                <div class="flex-shrink-0">
+                                    <i class="fas ${status.type === 'error' ? 'fa-exclamation-circle text-red-500' : 'fa-info-circle text-blue-500'}"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900">${status.message}</p>
+                        `;
+                        
+                        if (status.agent) {
+                            logContent += `
+                                <div class="mt-1 flex items-center text-xs text-gray-500">
+                                    <i class="fas fa-robot mr-1"></i>
+                                    <span>Agent: ${status.agent}</span>
+                                </div>
+                            `;
+                        }
+                        
+                        if (status.timestamp) {
+                            logContent += `
+                                <div class="mt-1 flex items-center text-xs text-gray-500">
+                                    <i class="far fa-clock mr-1"></i>
+                                    <span>${new Date(status.timestamp).toLocaleTimeString()}</span>
+                                </div>
+                            `;
+                        }
+                        
+                        if (status.output) {
+                            logContent += `
+                                <div class="mt-2 p-3 bg-gray-50 rounded-md">
+                                    <pre class="text-xs text-gray-700 whitespace-pre-wrap">${status.output}</pre>
+                                </div>
+                            `;
+                        }
+                        
+                        logContent += '</div></div>';
+                        logEntry.innerHTML = logContent;
+                        logEntries.appendChild(logEntry);
+                        logEntries.scrollTop = logEntries.scrollHeight;
+                    }
+                    
+                    // Update progress bar for different event types
+                    let progress = 0;
+                    switch (status.type) {
+                        case 'task_started':
+                            progress = 33;
+                            break;
+                        case 'task_completed':
+                            progress = 66;
+                            break;
+                        case 'completed':
+                            progress = 100;
+                            progressBar.style.width = '100%';
+                            progressPercentage.textContent = '100%';
+                            // Show results
+                            resultDiv.classList.remove('hidden');
+                            resultContent.textContent = status.result;
+                            showToast('Analysis completed successfully', 'success');
+                            stopTimer();
+                            socket.close();
+                            break;
+                        case 'error':
+                            statusMessage.classList.add('text-red-600');
+                            progressBar.classList.add('bg-red-600');
+                            showToast('An error occurred during analysis', 'error');
+                            stopTimer();
+                            socket.close();
+                            break;
+                    }
 
-                // Add log entry with animation
-                if (status.message) {
-                    const logEntry = document.createElement('div');
-                    logEntry.className = 'log-entry p-4 bg-white rounded-lg shadow-sm border border-gray-100';
-                    
-                    let logContent = `
-                        <div class="flex items-start space-x-3">
-                            <div class="flex-shrink-0">
-                                <i class="fas ${status.type === 'error' ? 'fa-exclamation-circle text-red-500' : 'fa-info-circle text-blue-500'}"></i>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-900">${status.message}</p>
-                    `;
-                    
-                    if (status.agent) {
-                        logContent += `
-                            <div class="mt-1 flex items-center text-xs text-gray-500">
-                                <i class="fas fa-robot mr-1"></i>
-                                <span>Agent: ${status.agent}</span>
-                            </div>
-                        `;
+                    if (progress > 0) {
+                        progressBar.style.width = `${progress}%`;
+                        progressPercentage.textContent = `${progress}%`;
                     }
-                    
-                    if (status.timestamp) {
-                        logContent += `
-                            <div class="mt-1 flex items-center text-xs text-gray-500">
-                                <i class="far fa-clock mr-1"></i>
-                                <span>${new Date(status.timestamp).toLocaleTimeString()}</span>
-                            </div>
-                        `;
-                    }
-                    
-                    if (status.output) {
-                        logContent += `
-                            <div class="mt-2 p-3 bg-gray-50 rounded-md">
-                                <pre class="text-xs text-gray-700 whitespace-pre-wrap">${status.output}</pre>
-                            </div>
-                        `;
-                    }
-                    
-                    logContent += `</div></div>`;
-                    logEntry.innerHTML = logContent;
-                    logEntries.appendChild(logEntry);
-                    logEntries.scrollTop = logEntries.scrollHeight;
-                }
-
-                // Update progress bar for different event types
-                let progress = 0;
-                switch (status.type) {
-                    case 'task_started':
-                        progress = 33;
-                        break;
-                    case 'task_completed':
-                        progress = 66;
-                        break;
-                    case 'completed':
-                        progress = 100;
-                        progressBar.style.width = '100%';
-                        progressPercentage.textContent = '100%';
-                        // Show results
-                        resultDiv.classList.remove('hidden');
-                        resultContent.textContent = status.result;
-                        showToast('Analysis completed successfully', 'success');
-                        stopTimer();
-                        socket.close();
-                        break;
-                    case 'error':
-                        statusMessage.classList.add('text-red-600');
-                        progressBar.classList.add('bg-red-600');
-                        showToast('An error occurred during analysis', 'error');
-                        stopTimer();
-                        socket.close();
-                        break;
+                } catch (error) {
+                    console.error('Error processing message:', error);
+                    showToast('Error processing status update', 'error');
                 }
                 
                 if (progress > 0) {
@@ -196,6 +274,40 @@ document.addEventListener('DOMContentLoaded', () => {
             stopTimer();
         }
     });
+
+    // WebSocket event handlers
+    ws.onopen = () => {
+        console.log('WebSocket connection established');
+    };
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.status) {
+            updateProgress(data.status);
+        }
+    };
+
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        showError('WebSocket connection failed');
+    };
+
+    function updateProgress(status) {
+        // Update progress UI based on status message
+        const progressElement = document.getElementById('progress');
+        if (progressElement) {
+            progressElement.textContent = status;
+        }
+    }
+
+    function showError(message) {
+        // Show error message to user
+        const errorElement = document.getElementById('error-message');
+        if (errorElement) {
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+        }
+    }
 
     // File drag and drop handling
     const dropZone = document.querySelector('.drop-zone');
@@ -236,5 +348,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const dt = e.dataTransfer;
         const files = dt.files;
         fileInput.files = files;
+        // Dispatch change event to update UI
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
     }
+
+    // Update UI when file is selected
+    fileInput.addEventListener('change', (e) => {
+        const fileName = e.target.files[0]?.name;
+        if (fileName) {
+            dropZone.querySelector('p').textContent = fileName;
+        } else {
+            dropZone.querySelector('p').textContent = 'or drag and drop your file here';
+        }
+    });
 });

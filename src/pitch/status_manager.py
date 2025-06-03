@@ -7,16 +7,20 @@ class StatusManager:
         self.active_connections: Dict[str, Set[WebSocket]] = {}
         self.job_logs: Dict[str, list] = {}
 
-    async def connect(self, websocket: WebSocket, job_id: str):
-        await websocket.accept()
+    async def connect(self, job_id: str, websocket: WebSocket):
+        """Connect a websocket to a specific job"""
         if job_id not in self.active_connections:
             self.active_connections[job_id] = set()
         self.active_connections[job_id].add(websocket)
         
         # Send previous logs if they exist
         if job_id in self.job_logs:
-            for log in self.job_logs[job_id]:
-                await websocket.send_text(json.dumps(log))
+            try:
+                for log in self.job_logs[job_id]:
+                    await websocket.send_text(json.dumps(log))
+            except Exception as e:
+                print(f"Error sending previous logs: {e}")
+                self.disconnect(job_id, websocket)
 
     def disconnect(self, websocket: WebSocket, job_id: str):
         if job_id in self.active_connections:
