@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded - Starting script initialization');
+    
     const form = document.getElementById('uploadForm');
     const submitBtn = document.getElementById('submit-btn');
     const statusDiv = document.getElementById('status');
@@ -23,6 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Upload form not found!');
         return;
     }
+    
+    console.log('Form found, attaching event listeners');
 
     // Handle file selection display
     fileInput.addEventListener('change', () => {
@@ -52,10 +56,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Form submission handler
     form.addEventListener('submit', async (e) => {
+        console.log('Form submit event triggered');
         e.preventDefault();
+        console.log('Default prevented, processing form...');
         
         const startupName = form.elements['startup_name'].value.trim();
         const files = form.elements['files'].files;
+
+        console.log('Startup name:', startupName);
+        console.log('Files:', files.length);
 
         if (!startupName) {
             showToast('Please enter your startup name', 'error');
